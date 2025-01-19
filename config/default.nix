@@ -7,6 +7,7 @@
     ./lsp
     ./nvim-tree.nix
     ./options.nix
+    ./render-markdown.nix
     ./treesitter.nix
     ./utils
   ];
@@ -26,8 +27,8 @@
     autocmd BufRead,BufNewFile *.pl set filetype=prolog
   '';
 
-  programs.nixvim.extraConfig = ''
-    vim.opt.makeprg = "make"
-    vim.opt.errorformat = "%f:%l:%c:%m"
-  '';
+  #programs.nixvim.extraConfig = ''
+  #  vim.opt.makeprg = "make"
+  #  vim.opt.errorformat = "%f:%l:%c:%m"
+  #'';
 }

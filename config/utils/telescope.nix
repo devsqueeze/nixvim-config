@@ -20,7 +20,8 @@
         action = "oldfiles";
         options.desc = "Recent";
       };
-      "<leader>b" = {
+      #"<leader>b" = {
+      "<leader><space>" = {
         action = "buffers";
         options.desc = "Buffers";
       };

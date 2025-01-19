@@ -26,5 +26,8 @@
     undofile = true; # Build-in persistent undo
 
     termguicolors = lib.mkForce pkgs.stdenv.isLinux;
+
+    makeprg = "make";
+    errorformat = "%f:%l:%c:%m";
   };
 }
