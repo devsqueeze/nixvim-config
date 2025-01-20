@@ -1,9 +1,9 @@
 { lib, config, ... }:
 {
-  options = {
-    lazygit.enable = lib.mkEnableOption "Enable lazygit module";
-  };
-  config = lib.mkIf config.lazygit.enable {
+  #options = {
+  #  lazygit.enable = lib.mkEnableOption "Enable lazygit module";
+  #};
+  #config = lib.mkIf config.lazygit.enable {
 
     plugins.lazygit = {
       enable = true;
@@ -23,5 +23,5 @@
         };
       }
     ];
-  };
+  #};
 }

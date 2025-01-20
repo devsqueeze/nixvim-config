@@ -1,6 +1,7 @@
 {
   imports = [
     ./cmp.nix
+    ./ftplugin.nix
     ./git
     ./keymaps.nix 
     ./lightline.nix
@@ -27,8 +28,4 @@
     autocmd BufRead,BufNewFile *.pl set filetype=prolog
   '';
 
-  #programs.nixvim.extraConfig = ''
-  #  vim.opt.makeprg = "make"
-  #  vim.opt.errorformat = "%f:%l:%c:%m"
-  #'';
 }

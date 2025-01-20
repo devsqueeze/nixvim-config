@@ -28,6 +28,6 @@
     termguicolors = lib.mkForce pkgs.stdenv.isLinux;
 
     makeprg = "make";
-    errorformat = "%f:%l:%c:%m";
+    #errorformat = "%f:%l:%c:%m";
   };
 }
