@@ -18,7 +18,7 @@
       };
       "<leader>fr" = {
         action = "oldfiles";
-        options.desc = "Recent";
+        options.desc = "Recent files";
       };
       #"<leader>b" = {
       "<leader><space>" = {

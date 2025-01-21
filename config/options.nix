@@ -29,5 +29,8 @@
 
     makeprg = "make";
     #errorformat = "%f:%l:%c:%m";
+
+    #vim.opt.diffopt:append("vertical") -- Makes     diff windows split vertically
+    diffopt = lib.mkAfter [ "vertical" ];
   };
 }
