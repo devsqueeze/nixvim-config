@@ -10,6 +10,7 @@
     ./options.nix
     ./render-markdown.nix
     ./treesitter.nix
+    ./tmux-navigator.nix
     ./utils
   ];
 

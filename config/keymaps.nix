@@ -99,5 +99,12 @@
       action = "<CMD>Trouble diagnostics toggle<CR>";
       options.desc = "Toggle trouble";
     }
+
+    # Make build
+    {
+      key = "<leader>m";
+      action = "<CMD>wall<CR><CMD>make<CR>";
+      options.desc = "Make build";
+    }
   ];
 }
