@@ -1,8 +1,8 @@
-{  
+{
   globals.mapleader = " ";
 
   keymaps = [
-  
+
     #
     # Git
     #
@@ -24,8 +24,8 @@
     }
     {
       key = "<leader>gtd";
-      action = "<CMD>Gitsigns toggle_deleted";
-      options.desc = "Gitsigns deleted";
+      action = "<CMD>Gitsigns toggle_deleted<CR>";
+      options.desc = "Toggle Gitsigns deleted";
     }
     {
       key = "<leader>gd";
@@ -88,7 +88,7 @@
       options.desc = "Escape terminal mode";
     }
 
-    # Trouble 
+    # Trouble
     {
       mode = "n";
       key = "<leader>d";
