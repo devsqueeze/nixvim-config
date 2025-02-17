@@ -3,7 +3,7 @@
     ./cmp.nix
     ./ftplugin.nix
     ./git
-    ./keymaps.nix 
+    ./keymaps.nix
     ./lightline.nix
     ./lsp
     ./nvim-tree.nix
@@ -25,9 +25,17 @@
 
   diagnostics = { virtual_lines.only_current_line = true; };
 
-  #extraConfigVim = ''
-  #  autocmd BufRead,BufNewFile *.pl set filetype=prolog
-  #'';
+  extraConfigLua = ''
+    vim.api.nvim_create_autocmd("BufReadPost", {
+      callback = function()
+        if vim.opt.diff:get() then
+          for _, client in pairs(vim.lsp.get_active_clients()) do
+            vim.lsp.stop_client(client.id)
+          end
+        end
+      end,
+    })
+    '';
 
   autoCmd = [
     {
