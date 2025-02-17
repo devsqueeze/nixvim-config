@@ -13,8 +13,7 @@
       onAttach = ''
         if vim.wo.diff then
           vim.diagnostic.disable()
-          -- Optionally disable other LSP features in diff mode
-          -- vim.lsp.stop_client(vim.lsp.get_active_clients())
+          vim.lsp.stop_client(vim.lsp.get_active_clients())
         end
       '';
       servers = {
