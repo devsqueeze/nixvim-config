@@ -12,8 +12,8 @@
       enable = true;
       onAttach = ''
         if vim.wo.diff then
-          vim.diagnostic.disable()
-          vim.lsp.stop_client(vim.lsp.get_active_clients())
+          vim.diagnostic.enable(false)
+          vim.lsp.stop_client(vim.lsp.get_clients())
         end
       '';
       servers = {
