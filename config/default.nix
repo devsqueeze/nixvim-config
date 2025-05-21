@@ -3,7 +3,7 @@
     ./cmp.nix
     ./ftplugin.nix
     ./git
-    ./gitlab.nix
+    #./gitlab.nix
     ./keymaps.nix
     ./lightline.nix
     ./lsp
