@@ -24,13 +24,13 @@
 
   plugins.web-devicons.enable = true;
 
-  diagnostics = { virtual_lines.only_current_line = true; };
+  diagnostic.settings = { virtual_lines.only_current_line = true; };
 
   #extraConfigLua = ''
   #  vim.api.nvim_create_autocmd("BufReadPost", {
   #    callback = function()
   #      if vim.opt.diff:get() then
-  #        for _, client in pairs(vim.lsp.get_active_clients()) do
+  #        for _, client in pairs(vim.lsp.get_clients()) do
   #          vim.lsp.stop_client(client.id)
   #        end
   #      end
