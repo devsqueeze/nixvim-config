@@ -1,4 +1,4 @@
-{
+{ pkgs, ... }: {
   imports = [
     ./cmp.nix
     ./ftplugin.nix
@@ -25,6 +25,11 @@
   plugins.web-devicons.enable = true;
 
   diagnostic.settings = { virtual_lines.only_current_line = true; };
+
+  # Plugins without special nixvim modules
+  extraPlugins = with pkgs; [
+    vimPlugins.vim-eunuch
+  ];
 
   #extraConfigLua = ''
   #  vim.api.nvim_create_autocmd("BufReadPost", {
