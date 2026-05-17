@@ -5,7 +5,7 @@
 
     cmp-buffer = { enable = true; };
 
-    cmp-emoji = { enable = true; };
+    #cmp-emoji = { enable = true; };
 
     cmp-nvim-lsp = { enable = true; };
 
@@ -116,7 +116,7 @@
           "<C-Space>" = "cmp.mapping.complete()";
           "<S-Tab>" = "cmp.mapping.close()";
           "<Tab>" =
-            # lua 
+            # lua
             ''
               function(fallback)
                 local line = vim.api.nvim_get_current_line()
