@@ -31,6 +31,10 @@
     vimPlugins.vim-eunuch
   ];
 
+  extraPython3Packages = ps: with ps; [
+    pynvim
+  ];
+
   #extraConfigLua = ''
   #  vim.api.nvim_create_autocmd("BufReadPost", {
   #    callback = function()
