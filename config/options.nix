@@ -25,7 +25,7 @@
     swapfile = false;
     undofile = true; # Build-in persistent undo
 
-    termguicolors = lib.mkForce pkgs.stdenv.isLinux;
+    termguicolors = lib.mkForce pkgs.stdenv.hostPlatform.isLinux;
 
     makeprg = "make";
     #errorformat = "%f:%l:%c:%m";
