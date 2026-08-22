@@ -1,8 +1,10 @@
 { pkgs, ... }: {
   imports = [
     ./cmp.nix
+    ./excalidraw.nix
     ./ftplugin.nix
     ./git
+    ./image.nix
     ./keymaps.nix
     ./lightline.nix
     ./lsp
