@@ -60,7 +60,7 @@ in
       tracked[bufnr] = tracked[bufnr] or {}
       tracked[bufnr][id] = true
 
-      local cache_path = cache_dir .. "/" .. vim.fn.sha256(abspath) .. "-" .. mtime .. ".png"
+      local cache_path = cache_dir .. "/" .. vim.fn.sha256(abspath) .. "-" .. mtime .. "-dark.png"
 
       local function show()
         local ok, image = pcall(require, "image")
@@ -92,7 +92,7 @@ in
 
       vim.fn.mkdir(cache_dir, "p")
       vim.system(
-        { "excalidraw-cli", "convert", abspath, "--format", "png", "-o", cache_path },
+        { "excalidraw-cli", "convert", abspath, "--format", "png", "--dark", "-o", cache_path },
         {},
         function(result)
           if result.code == 0 then
