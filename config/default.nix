@@ -2,6 +2,7 @@
   imports = [
     ./cmp.nix
     ./excalidraw.nix
+    ./excalidraw-preview.nix
     ./ftplugin.nix
     ./git
     ./image.nix
