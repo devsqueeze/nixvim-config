@@ -48,9 +48,6 @@
       options.desc = "Gitsigns reset current buffer";
     }
 
-
-
-
     {
       key = "<C-n>";
       action = "<CMD>NvimTreeToggle<CR>";
@@ -74,7 +71,7 @@
     }
     {
       # Format file
-      key = "<leader>fm";
+      key = "<leader>cf";
       action = "<CMD>lua vim.lsp.buf.format()<CR>";
       options.desc = "Format the current buffer";
     }
