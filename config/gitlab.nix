@@ -1,5 +1,0 @@
-{
-  plugins.gitlab = {
-    enable = true;
-  };
-}

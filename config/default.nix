@@ -3,7 +3,6 @@
     ./cmp.nix
     ./ftplugin.nix
     ./git
-    #./gitlab.nix
     ./keymaps.nix
     ./lightline.nix
     ./lsp
@@ -34,18 +33,6 @@
   extraPython3Packages = ps: with ps; [
     pynvim
   ];
-
-  #extraConfigLua = ''
-  #  vim.api.nvim_create_autocmd("BufReadPost", {
-  #    callback = function()
-  #      if vim.opt.diff:get() then
-  #        for _, client in pairs(vim.lsp.get_clients()) do
-  #          vim.lsp.stop_client(client.id)
-  #        end
-  #      end
-  #    end,
-  #  })
-  #  '';
 
   autoCmd = [
     {

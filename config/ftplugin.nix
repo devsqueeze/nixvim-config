@@ -6,4 +6,3 @@
     '';
   };
 }
-#set smartindent

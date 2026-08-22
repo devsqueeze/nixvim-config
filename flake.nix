@@ -4,6 +4,7 @@
   inputs = {
     nixvim.url = "github:nix-community/nixvim";
     flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.follows = "nixvim/nixpkgs";
   };
 
   outputs = { self, nixpkgs, nixvim, flake-utils, ... }@inputs:
@@ -33,7 +34,5 @@
           # Lets you run `nix run .` to start nixvim
           default = nvim;
         };
-
-          #devShells.default = import ./shell.nix { inherit pkgs; };
       });
 }

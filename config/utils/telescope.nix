@@ -17,11 +17,6 @@
         action = "find_files";
         options.desc = "Find project files";
       };
-      #"<leader>fr" = {
-      #  action = "oldfiles";
-      #  options.desc = "Recent files";
-      #};
-      #"<leader>b" = {
       "<leader><space>" = {
         action = "buffers";
         options.desc = "Buffers";
@@ -115,23 +110,6 @@
         action = "git_stash";
         options.desc = "View git stashes";
       };
-
-
-      #"<leader>fw" = {
-      #  #action = "<Cmd>lua require('telescope.builtin').grep_string({ search = vim.fn.expand(\"<cword>\") })<CR>";
-      #  #action = ":lua require('telescope.builtin').grep_string({ search = vim.fn.expand('<cword>') })<CR>";
-      #  action = "lua require('telescope.builtin').grep_string({ search = vim.fn.expand('<cword>') })";
-      #  mode = "n";
-      #  options = {
-      #    desc = "Search word under cursor";
-      #  };
-      #};
-      #"<C-p>" = {
-      #  action = "git_files";
-      #  options = {
-      #    desc = "Telescope Git Files";
-      #  };
-      #};
     };
     extensions.fzf-native = { enable = true; };
   };

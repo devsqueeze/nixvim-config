@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ lib, ... }:
 
 {
   config.opts = {
@@ -25,7 +25,7 @@
     swapfile = false;
     undofile = true; # Build-in persistent undo
 
-    termguicolors = lib.mkForce pkgs.stdenv.hostPlatform.isLinux;
+    termguicolors = true;
 
     makeprg = "make";
     #errorformat = "%f:%l:%c:%m";
