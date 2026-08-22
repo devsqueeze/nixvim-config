@@ -1,4 +1,10 @@
+{ pkgs, ... }:
 {
+  # image.nvim shells out to ImageMagick's CLI (`magick`/`convert`) to
+  # process images before sending them over the graphics protocol, even
+  # with the kitty backend.
+  extraPackages = [ pkgs.imagemagick ];
+
   plugins.image = {
     enable = true;
     # The kitty backend queries the terminal over stdout at setup time, which
