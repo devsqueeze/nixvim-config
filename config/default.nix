@@ -1,6 +1,7 @@
 { pkgs, ... }: {
   imports = [
     ./cmp.nix
+    ./dictate.nix
     ./excalidraw.nix
     ./excalidraw-preview.nix
     ./ftplugin.nix
