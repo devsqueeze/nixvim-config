@@ -10,6 +10,7 @@
         f:write(text)
         f:close()
       end
+      vim.fn.setreg("+", text)
       vim.cmd("quit!")
     end
 
@@ -31,6 +32,7 @@
         {
           "claude", "-p", "--model", "claude-haiku-4-5-20251001",
           "--output-format", "text", "--allowedTools", "", "--strict-mcp-config",
+          "--setting-sources", "", "--no-session-persistence",
           "--system-prompt",
           "You clean up dictated speech-to-text drafts. Rewrite the user's message "
             .. "into clear, concise UK English: fix dictation artefacts, grammar, "
@@ -39,7 +41,12 @@
             .. "preamble, no markdown code fences, no commentary.",
           "Refine this dictated draft:",
         },
-        { stdin = draft, text = true, env = { CLAUDE_CONFIG_DIR = vim.fn.expand("~/.config/claude") } },
+        {
+          stdin = draft,
+          text = true,
+          cwd = "/tmp",
+          env = { CLAUDE_CONFIG_DIR = vim.fn.expand("~/.config/claude") },
+        },
         function(result)
           vim.schedule(function()
             if not vim.api.nvim_buf_is_valid(bufnr) then
@@ -50,6 +57,7 @@
             if result.code == 0 and stdout:match("%S") then
               local refined = stdout:gsub("%s+$", "")
               vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(refined, "\n"))
+              vim.notify("dictate: refined")
             else
               local stderr = result.stderr or ""
               local log = io.open("/tmp/dictate_refine_error.log", "w")
