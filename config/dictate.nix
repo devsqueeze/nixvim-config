@@ -3,8 +3,7 @@
     local output_file = "/tmp/dictate_output.txt"
 
     local history_file = "/dev/shm/dictate_history.jsonl"
-    local history_limit = 3 -- how many entries `p` shows by default
-    local history_max_stored = 50 -- trim the file to this many most-recent entries on write
+    local history_limit = 5 -- how many past dictations are kept, and shown in history
 
     local function read_history_entries()
       local entries = {}
@@ -24,8 +23,8 @@
     local function append_history(text)
       local entries = read_history_entries()
       table.insert(entries, { text = text, time = os.date("%Y-%m-%d %H:%M") })
-      if #entries > history_max_stored then
-        entries = { table.unpack(entries, #entries - history_max_stored + 1) }
+      if #entries > history_limit then
+        entries = { table.unpack(entries, #entries - history_limit + 1) }
       end
       local out = io.open(history_file, "w")
       if out then
@@ -36,54 +35,59 @@
       end
     end
 
-    local function read_history(limit)
-      local entries = read_history_entries()
-      local result = {}
-      for i = math.max(1, #entries - limit + 1), #entries do
-        table.insert(result, entries[i])
-      end
-      return result
-    end
-
     local function show_history()
-      local entries = read_history(history_limit)
-      local lines = {}
+      local entries = read_history_entries()
       if #entries == 0 then
-        lines = { "(no dictation history yet)" }
-      else
-        for i = #entries, 1, -1 do
-          local e = entries[i]
-          table.insert(lines, "-- " .. e.time .. " --")
-          for _, l in ipairs(vim.split(e.text, "\n")) do
-            table.insert(lines, l)
-          end
-          table.insert(lines, "")
-        end
+        vim.notify("dictate: no history yet")
+        return
       end
 
-      local buf = vim.api.nvim_create_buf(false, true)
-      vim.bo[buf].filetype = "markdown"
-      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-      vim.bo[buf].modifiable = false
+      local pickers = require("telescope.pickers")
+      local finders = require("telescope.finders")
+      local conf = require("telescope.config").values
+      local actions = require("telescope.actions")
+      local action_state = require("telescope.actions.state")
+      local previewers = require("telescope.previewers")
 
-      local width = math.floor(vim.o.columns * 0.7)
-      local height = math.floor(vim.o.lines * 0.6)
-      local win = vim.api.nvim_open_win(buf, true, {
-        relative = "editor",
-        width = width,
-        height = height,
-        row = math.floor((vim.o.lines - height) / 2),
-        col = math.floor((vim.o.columns - width) / 2),
-        style = "minimal",
-        border = "rounded",
-        title = " dictation history (last " .. history_limit .. ") ",
-      })
+      local target_bufnr = vim.api.nvim_get_current_buf()
 
-      local close = function()
-        vim.api.nvim_win_close(win, true)
+      local items = {}
+      for i = #entries, 1, -1 do -- most recent first
+        table.insert(items, entries[i])
       end
-      vim.keymap.set("n", "q", close, { buffer = buf, silent = true })
-      vim.keymap.set("n", "<Esc>", close, { buffer = buf, silent = true })
+
+      pickers.new({}, {
+        prompt_title = "Dictation history",
+        finder = finders.new_table({
+          results = items,
+          entry_maker = function(entry)
+            local first_line = vim.split(entry.text, "\n")[1]
+            return {
+              value = entry,
+              display = entry.time .. "  " .. first_line,
+              ordinal = entry.time .. " " .. entry.text,
+            }
+          end,
+        }),
+        sorter = conf.generic_sorter({}),
+        previewer = previewers.new_buffer_previewer({
+          title = "Dictation text",
+          define_preview = function(self, entry)
+            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, vim.split(entry.value.text, "\n"))
+          end,
+        }),
+        attach_mappings = function(prompt_bufnr, _)
+          -- Revert the dictate buffer to the selected entry's text.
+          actions.select_default:replace(function()
+            local selection = action_state.get_selected_entry()
+            actions.close(prompt_bufnr)
+            if selection and vim.api.nvim_buf_is_valid(target_bufnr) then
+              vim.api.nvim_buf_set_lines(target_bufnr, 0, -1, false, vim.split(selection.value.text, "\n"))
+            end
+          end)
+          return true
+        end,
+      }):find()
     end
 
     local function accept()
