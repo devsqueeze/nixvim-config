@@ -24,7 +24,11 @@
       local entries = read_history_entries()
       table.insert(entries, { text = text, time = os.date("%Y-%m-%d %H:%M") })
       if #entries > history_limit then
-        entries = { table.unpack(entries, #entries - history_limit + 1) }
+        local trimmed = {}
+        for i = #entries - history_limit + 1, #entries do
+          table.insert(trimmed, entries[i])
+        end
+        entries = trimmed
       end
       local out = io.open(history_file, "w")
       if out then
