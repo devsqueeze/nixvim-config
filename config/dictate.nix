@@ -110,27 +110,43 @@
       vim.cmd("quit!")
     end
 
-    local function refine()
-      local bufnr = vim.api.nvim_get_current_buf()
-      local draft = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
-      if draft:match("^%s*$") then
+    local refine_system_prompt = "You clean up dictated speech-to-text drafts. Rewrite the user's message "
+      .. "into clear, concise UK English: fix dictation artefacts, grammar, "
+      .. "capitalisation and punctuation, without changing its meaning or "
+      .. "adding new content. Reply with ONLY the corrected text -- no "
+      .. "preamble, no markdown code fences, no commentary."
+
+    local function apply_refine_result(bufnr, refined_text)
+      if not vim.api.nvim_buf_is_valid(bufnr) then
         return
       end
+      vim.bo[bufnr].modifiable = true
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(refined_text, "\n"))
+      vim.notify("dictate: refined")
+    end
 
-      vim.bo[bufnr].modifiable = false
-      vim.notify("dictate: refining...")
+    local function fail_refine(bufnr, detail, log_body)
+      if not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+      end
+      vim.bo[bufnr].modifiable = true
+      local log = io.open("/tmp/dictate_refine_error.log", "w")
+      if log then
+        log:write(log_body)
+        log:close()
+      end
+      vim.notify("dictate: refine failed: " .. detail .. " (full log: /tmp/dictate_refine_error.log)", vim.log.levels.ERROR)
+    end
 
+    -- Slow but always-correct path: the CLI handles its own OAuth refresh, so
+    -- this is the fallback whenever the direct API call can't be used.
+    local function call_claude_cli(draft, bufnr)
       vim.system(
         {
           "claude", "-p", "--model", "claude-haiku-4-5-20251001",
           "--output-format", "text", "--allowedTools", "", "--strict-mcp-config",
           "--setting-sources", "", "--no-session-persistence",
-          "--system-prompt",
-          "You clean up dictated speech-to-text drafts. Rewrite the user's message "
-            .. "into clear, concise UK English: fix dictation artefacts, grammar, "
-            .. "capitalisation and punctuation, without changing its meaning or "
-            .. "adding new content. Reply with ONLY the corrected text -- no "
-            .. "preamble, no markdown code fences, no commentary.",
+          "--system-prompt", refine_system_prompt,
           "Refine this dictated draft:",
         },
         {
@@ -141,30 +157,94 @@
         },
         function(result)
           vim.schedule(function()
-            if not vim.api.nvim_buf_is_valid(bufnr) then
-              return
-            end
-            vim.bo[bufnr].modifiable = true
             local stdout = result.stdout or ""
             if result.code == 0 and stdout:match("%S") then
-              local refined = stdout:gsub("%s+$", "")
-              vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(refined, "\n"))
-              vim.notify("dictate: refined")
+              apply_refine_result(bufnr, (stdout:gsub("%s+$", "")))
             else
               local stderr = result.stderr or ""
-              local log = io.open("/tmp/dictate_refine_error.log", "w")
-              if log then
-                log:write("exit code: " .. tostring(result.code) .. "\n")
-                log:write("--- stdout ---\n" .. stdout .. "\n")
-                log:write("--- stderr ---\n" .. stderr .. "\n")
-                log:close()
-              end
               local detail = stderr:match("%S") and stderr or ("exit code " .. tostring(result.code) .. ", no output")
-              vim.notify("dictate: refine failed: " .. detail .. " (full log: /tmp/dictate_refine_error.log)", vim.log.levels.ERROR)
+              fail_refine(
+                bufnr,
+                detail,
+                "exit code: " .. tostring(result.code) .. "\n--- stdout ---\n" .. stdout .. "\n--- stderr ---\n" .. stderr .. "\n"
+              )
             end
           end)
         end
       )
+    end
+
+    local function read_access_token()
+      local f = io.open(vim.fn.expand("~/.config/claude/.credentials.json"), "r")
+      if not f then
+        return nil
+      end
+      local content = f:read("*a")
+      f:close()
+      local ok, decoded = pcall(vim.json.decode, content)
+      if not ok or not decoded.claudeAiOauth then
+        return nil
+      end
+      return decoded.claudeAiOauth.accessToken
+    end
+
+    -- Fast path: calls the Messages API directly with the same OAuth token
+    -- Claude Code itself uses (subscription-billed, not pay-per-token -- see
+    -- shared/anthropic-cli.md in the claude-api skill). This machine's token
+    -- is kept fresh by ordinary Claude Code use; this function doesn't
+    -- implement the OAuth refresh flow itself, so any failure here (stale
+    -- token, network issue, unexpected response shape) just falls back to
+    -- call_claude_cli instead of surfacing an error.
+    local function call_direct_api(draft, token, bufnr)
+      local body = vim.json.encode({
+        model = "claude-haiku-4-5-20251001",
+        max_tokens = 1024,
+        system = refine_system_prompt,
+        messages = { { role = "user", content = "Refine this dictated draft: " .. draft } },
+      })
+
+      vim.system(
+        {
+          "curl", "-sS", "-f", "https://api.anthropic.com/v1/messages",
+          "-H", "Authorization: Bearer " .. token,
+          "-H", "anthropic-version: 2023-06-01",
+          "-H", "anthropic-beta: oauth-2025-04-20",
+          "-H", "content-type: application/json",
+          "-d", body,
+        },
+        { text = true },
+        function(result)
+          vim.schedule(function()
+            if result.code == 0 then
+              local ok, decoded = pcall(vim.json.decode, result.stdout or "")
+              local text = ok and decoded.content and decoded.content[1] and decoded.content[1].text
+              if text and text:match("%S") then
+                apply_refine_result(bufnr, (text:gsub("%s+$", "")))
+                return
+              end
+            end
+            call_claude_cli(draft, bufnr)
+          end)
+        end
+      )
+    end
+
+    local function refine()
+      local bufnr = vim.api.nvim_get_current_buf()
+      local draft = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
+      if draft:match("^%s*$") then
+        return
+      end
+
+      vim.bo[bufnr].modifiable = false
+      vim.notify("dictate: refining...")
+
+      local token = read_access_token()
+      if token then
+        call_direct_api(draft, token, bufnr)
+      else
+        call_claude_cli(draft, bufnr)
+      end
     end
 
     vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
