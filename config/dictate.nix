@@ -94,6 +94,22 @@
       }):find()
     end
 
+    -- Line breaks made just for editing convenience in this buffer get
+    -- collapsed to spaces before being typed back (see dictate_toggle.sh),
+    -- so an accidental Enter can't submit a chat message mid-paste. This
+    -- marker (converted back to a real Enter keypress by dictate_toggle.sh)
+    -- lets a specific line break be kept for scenarios that do want one --
+    -- multi-paragraph text, code, etc.
+    local newline_marker = "␤"
+
+    local function insert_newline_marker()
+      local pos = vim.api.nvim_win_get_cursor(0)
+      local row, col = pos[1], pos[2]
+      local line = vim.api.nvim_get_current_line()
+      vim.api.nvim_set_current_line(line:sub(1, col) .. newline_marker .. line:sub(col + 1))
+      vim.api.nvim_win_set_cursor(0, { row, col + #newline_marker })
+    end
+
     local function accept()
       local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
       local text = table.concat(lines, "\n")
@@ -261,6 +277,7 @@
         vim.keymap.set("n", "<CR>", accept, opts)
         vim.keymap.set("n", "ZQ", discard, opts)
         vim.keymap.set("n", "<leader>h", show_history, opts)
+        vim.keymap.set("n", "<leader>n", insert_newline_marker, opts)
 
         vim.cmd("startinsert")
       end,
