@@ -254,10 +254,13 @@
         vim.bo[buf].swapfile = false
 
         local opts = { buffer = buf, silent = true }
-        vim.keymap.set("n", "r", refine, opts)
+        -- <leader>-prefixed so these don't shadow basic Vim editing commands
+        -- (bare "r" replaces a character, bare "p" pastes) while the user is
+        -- fixing up dictated text in this buffer.
+        vim.keymap.set("n", "<leader>r", refine, opts)
         vim.keymap.set("n", "<CR>", accept, opts)
         vim.keymap.set("n", "ZQ", discard, opts)
-        vim.keymap.set("n", "p", show_history, opts)
+        vim.keymap.set("n", "<leader>h", show_history, opts)
 
         vim.cmd("startinsert")
       end,
