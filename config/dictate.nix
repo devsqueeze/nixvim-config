@@ -126,6 +126,16 @@
       vim.cmd("quit!")
     end
 
+    local function save_to_history()
+      local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      local text = table.concat(lines, "\n")
+      if text:match("^%s*$") then
+        return
+      end
+      append_history(text)
+      vim.notify("dictate: saved to history")
+    end
+
     local refine_system_prompt = "You clean up dictated speech-to-text drafts. Rewrite the user's message "
       .. "into clear, concise UK English: fix dictation artefacts, grammar, "
       .. "capitalisation and punctuation, without changing its meaning or "
@@ -278,6 +288,7 @@
         vim.keymap.set("n", "ZQ", discard, opts)
         vim.keymap.set("n", "<leader>h", show_history, opts)
         vim.keymap.set("n", "<leader>n", insert_newline_marker, opts)
+        vim.keymap.set("n", "<leader>s", save_to_history, opts)
 
         vim.cmd("startinsert")
       end,
