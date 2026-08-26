@@ -5,6 +5,27 @@
     local history_file = "/dev/shm/dictate_history.jsonl"
     local history_limit = 5 -- how many past dictations are kept, and shown in history
 
+    -- Keep in sync with STATUS_FILE in dictate.py. The daemon writes its
+    -- desktop-notification text here and remote-calls this so the same
+    -- "Listening...", "Processing...", "Inserted." etc. cues show up inside
+    -- the dictate window itself, not just as a desktop notification.
+    local status_file = "/tmp/dictate_status.json"
+
+    _G.dictate_show_status = function()
+      local f = io.open(status_file, "r")
+      if not f then
+        return
+      end
+      local content = f:read("*a")
+      f:close()
+      local ok, decoded = pcall(vim.json.decode, content)
+      if not ok or not decoded.text then
+        return
+      end
+      local level = decoded.level == "error" and vim.log.levels.ERROR or vim.log.levels.INFO
+      vim.notify("dictate: " .. decoded.text, level)
+    end
+
     local function read_history_entries()
       local entries = {}
       local f = io.open(history_file, "r")
