@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{
   imports = [
     ./cmp.nix
     ./dictate.nix
@@ -28,11 +28,6 @@
   plugins.web-devicons.enable = true;
 
   diagnostic.settings = { virtual_lines.only_current_line = true; };
-
-  # Plugins without special nixvim modules
-  extraPlugins = with pkgs; [
-    vimPlugins.vim-eunuch
-  ];
 
   extraPython3Packages = ps: with ps; [
     pynvim

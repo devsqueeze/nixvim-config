@@ -1,7 +1,6 @@
 {
   imports = [
     ./auto-pairs.nix
-    ./autosave.nix
     ./blankline.nix
     ./telescope.nix
     ./toggleterm.nix
