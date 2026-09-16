@@ -44,6 +44,31 @@ in
       return links
     end
 
+    -- Excalimath keeps deleted elements in the file as tombstones, and the
+    -- exporter counts them towards the scene bounds, padding the PNG with
+    -- empty space. Render a copy with them stripped out instead.
+    local function live_scene(abspath)
+      local ok, scene = pcall(vim.json.decode, table.concat(vim.fn.readfile(abspath), "\n"))
+      if not ok or type(scene) ~= "table" or type(scene.elements) ~= "table" then
+        return abspath
+      end
+      local live = {}
+      for _, element in ipairs(scene.elements) do
+        if not element.isDeleted then
+          table.insert(live, element)
+        end
+      end
+      if #live == 0 or #live == #scene.elements then
+        return abspath
+      end
+      scene.elements = live
+      local tmp = cache_dir .. "/" .. vim.fn.sha256(abspath) .. "-live.excalidraw"
+      if vim.fn.writefile({ vim.json.encode(scene) }, tmp) == -1 then
+        return abspath
+      end
+      return tmp
+    end
+
     local function render_link(bufnr, win, link)
       local bufname = vim.api.nvim_buf_get_name(bufnr)
       local dir = vim.fn.fnamemodify(bufname, ":h")
@@ -92,7 +117,7 @@ in
 
       vim.fn.mkdir(cache_dir, "p")
       vim.system(
-        { "excalidraw-cli", "convert", abspath, "--format", "png", "--dark", "-o", cache_path },
+        { "excalidraw-cli", "convert", live_scene(abspath), "--format", "png", "--dark", "-o", cache_path },
         {},
         function(result)
           if result.code == 0 then
