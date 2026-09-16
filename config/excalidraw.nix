@@ -17,7 +17,7 @@
       local col = vim.api.nvim_win_get_cursor(0)[2]
       local start_col = 1
       while true do
-        local s, e, path = line:find("%[[^%]]*%]%(([^%s)]+%.excalidraw)%)", start_col)
+        local s, e, path = line:find("%[[^%]]*%]%(([^)]+%.excalidraw)%)", start_col)
         if not s then
           return nil
         end
