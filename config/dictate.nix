@@ -26,6 +26,70 @@
       vim.notify("dictate: " .. decoded.text, level)
     end
 
+    -- Keep in sync with INSERT_FILE in dictate.py. The daemon writes each
+    -- finished transcription here and remote-calls dictate_insert_text(),
+    -- which puts it straight into the scratch buffer. Unlike typing it with
+    -- wtype, this lands here even if another window has focus, and works in
+    -- any mode. The return value tells the daemon what happened: "ok",
+    -- "busy" (buffer locked by a refine), "empty", or "error: ...".
+    local insert_file = "/tmp/dictate_insert.txt"
+
+    _G.dictate_insert_text = function()
+      local f = io.open(insert_file, "r")
+      if not f then
+        return "empty"
+      end
+      local text = f:read("*a")
+      f:close()
+      if text == "" then
+        return "empty"
+      end
+
+      local buf = vim.fn.bufnr("/tmp/dictate_scratch.md")
+      if buf == -1 then
+        return "error: dictate buffer not found"
+      end
+      local win = vim.fn.bufwinid(buf)
+      if win == -1 then
+        return "error: dictate buffer is not shown in any window"
+      end
+      if not vim.bo[buf].modifiable then
+        return "busy"
+      end
+
+      -- Run in the scratch buffer's own window, so this still works when
+      -- e.g. the history picker has focus inside nvim.
+      local ok, err = pcall(vim.api.nvim_win_call, win, function()
+        local col = vim.api.nvim_win_get_cursor(0)[2]
+        local line = vim.api.nvim_get_current_line()
+        -- Like Vim's "a": after the character under the cursor in Normal
+        -- mode. In Insert mode the cursor already sits between characters,
+        -- so put the text right there instead.
+        local insert_mode = vim.api.nvim_get_mode().mode:sub(1, 1) == "i"
+        local prev_char = insert_mode and line:sub(col, col) or line:sub(col + 1, col + 1)
+        -- Separate from the text already there, or consecutive dictations
+        -- run together ("Hello.World").
+        if prev_char ~= "" and not prev_char:match("%s") and not text:match("^%s") then
+          text = " " .. text
+        end
+        vim.api.nvim_put(vim.split(text, "\n"), "c", not insert_mode and line ~= "", false)
+        -- Leave the cursor on the last inserted character (after it, in
+        -- Insert mode), so the next dictation continues from there.
+        local mark = vim.api.nvim_buf_get_mark(0, "]")
+        if insert_mode then
+          local last_line = vim.api.nvim_buf_get_lines(0, mark[1] - 1, mark[1], false)[1]
+          local char_len = #vim.fn.strcharpart(last_line:sub(mark[2] + 1), 0, 1)
+          vim.api.nvim_win_set_cursor(0, { mark[1], mark[2] + char_len })
+        else
+          vim.api.nvim_win_set_cursor(0, mark)
+        end
+      end)
+      if not ok then
+        return "error: " .. tostring(err)
+      end
+      return "ok"
+    end
+
     local function read_history_entries()
       local entries = {}
       local f = io.open(history_file, "r")
@@ -310,8 +374,6 @@
         vim.keymap.set("n", "<leader>h", show_history, opts)
         vim.keymap.set("n", "<leader>n", insert_newline_marker, opts)
         vim.keymap.set("n", "<leader>s", save_to_history, opts)
-
-        vim.cmd("startinsert")
       end,
     })
   '';
