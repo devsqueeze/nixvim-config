@@ -17,7 +17,6 @@
       servers = {
         bashls.enable = true;
         clangd.enable = true;
-        jdtls.enable = true;
         nixd.enable = true;
         ruff.enable = true;
       };

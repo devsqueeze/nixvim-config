@@ -8,17 +8,19 @@
   };
 
   outputs = { self, nixpkgs, nixvim, flake-utils, ... }@inputs:
-    let 
-      config = import ./config; # import the module directly
+    let
+      fullConfig = import ./config; # full profile: every plugin
+      minimalConfig = import ./config/minimal.nix; # minimal profile: headless-friendly subset
     in flake-utils.lib.eachDefaultSystem (system:
       let
         nixvimLib = nixvim.lib.${system};
         pkgs = import nixpkgs { inherit system; };
         nixvim' = nixvim.legacyPackages.${system};
-        nvim = nixvim'.makeNixvimWithModule {
-          inherit pkgs;
-          module = config;
+        mkNvim = module: nixvim'.makeNixvimWithModule {
+          inherit pkgs module;
         };
+        nvim = mkNvim fullConfig;
+        nvimMinimal = mkNvim minimalConfig;
       in
       {
         formatter = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;
@@ -28,11 +30,17 @@
             inherit nvim;
             name = "My nixvim configuration";
           };
+          minimal = nixvimLib.check.mkTestDerivationFromNvim {
+            nvim = nvimMinimal;
+            name = "My nixvim configuration (minimal)";
+          };
         };
 
         packages = {
           # Lets you run `nix run .` to start nixvim
           default = nvim;
+          # Lets you run `nix run .#minimal` for the headless-friendly profile
+          minimal = nvimMinimal;
         };
       });
 }

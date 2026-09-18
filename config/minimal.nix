@@ -2,21 +2,14 @@
   imports = [
     ./common.nix
     ./cmp.nix
-    ./dictate.nix
-    ./excalidraw.nix
-    ./excalidraw-preview.nix
     ./ftplugin.nix
     ./git
-    ./image.nix
     ./keymaps.nix
     ./lsp
-    ./lsp/java.nix
     ./nvim-tree.nix
     ./options.nix
     ./render-markdown.nix
     ./treesitter.nix
-    ./tmux-navigator.nix
     ./utils
-    ./utils/toggleterm.nix
   ];
 }
