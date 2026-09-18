@@ -17,6 +17,5 @@
     ./treesitter.nix
     ./tmux-navigator.nix
     ./utils
-    ./utils/toggleterm.nix
   ];
 }
