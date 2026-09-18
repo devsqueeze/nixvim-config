@@ -6,7 +6,6 @@
         statix.enable = true;
       };
       formatting = {
-        fantomas.enable = true;
         nixfmt.enable = true;
         markdownlint.enable = true;
         shellharden.enable = true;
