@@ -33,7 +33,6 @@ Two versions are available:
 - Creating and previewing Excalidraw diagrams inline in Markdown files
 - Voice dictation, with AI-assisted cleanup of the transcribed text
 - Easier navigation between tmux panes and Neovim splits
-- A built-in toggleable terminal
 
 ## Using this configuration
 
