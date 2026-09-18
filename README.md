@@ -115,3 +115,8 @@ nix build .#minimal
 # Check that everything still builds correctly
 nix flake check
 ```
+
+## Acknowledgements / Credits
+
+This project was originally based on [nixvim-config](https://github.com/MikaelFangel/nixvim-config)
+by [Mikael Fangel](https://github.com/MikaelFangel), used under the MIT License.
