@@ -16,12 +16,12 @@
 
   autoCmd = [
     {
-      event = ["BufWritePre"];
-      pattern = ["*"];
+      event = [ "BufWritePre" ];
+      pattern = [ "*" ];
       command = ''
-          if !&binary && &filetype != 'diff' && &filetype != 'markdown'
-            %s/\s\+$//e
-          endif
+        if !&binary && &filetype != 'diff' && &filetype != 'markdown'
+          %s/\s\+$//e
+        endif
       '';
     }
   ];

@@ -1,7 +1,7 @@
 {
   plugins.telescope = {
     enable = true;
-   
+
     settings = {
       defaults = {
         sorting_strategy = "ascending";
@@ -10,8 +10,8 @@
         };
       };
     };
-  
-    
+
+
     keymaps = {
       "<leader>ff" = {
         action = "find_files";

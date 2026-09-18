@@ -11,7 +11,8 @@
     let
       fullConfig = import ./config; # full profile: every plugin
       minimalConfig = import ./config/minimal.nix; # minimal profile: headless-friendly subset
-    in flake-utils.lib.eachDefaultSystem (system:
+    in
+    flake-utils.lib.eachDefaultSystem (system:
       let
         nixvimLib = nixvim.lib.${system};
         pkgs = import nixpkgs { inherit system; };
