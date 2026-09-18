@@ -9,6 +9,7 @@
     ./git
     ./image.nix
     ./keymaps.nix
+    ./lightline.nix
     ./lsp
     ./lsp/java.nix
     ./nvim-tree.nix
