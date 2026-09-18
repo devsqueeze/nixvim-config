@@ -26,6 +26,42 @@
       vim.notify("dictate: " .. decoded.text, level)
     end
 
+    -- A window closed without <CR> must still reach the history, but exit
+    -- hooks can't be relied on for that: when the ghostty window goes away,
+    -- the TUI client and the --embed server see the hangup differently, and
+    -- in testing VimLeavePre either never ran or saw an empty buffer. So
+    -- the buffer is written here on every change instead, and the next
+    -- session moves whatever is left into the history (ingest_draft). Keep
+    -- in sync with DRAFT_FILE in dictate.py -- the daemon appends a round
+    -- that finishes after the window has already closed.
+    local draft_file = "/dev/shm/dictate_draft.txt"
+    local scratch_file = "/tmp/dictate_scratch.md"
+
+    -- Only a session in which at least one word was dictated counts for the
+    -- history. One that recorded nothing, was muted, or just restored or
+    -- re-sent an old entry doesn't.
+    local dictated = false
+
+    local function write_draft()
+      if not dictated then
+        return
+      end
+      local buf = vim.fn.bufnr(scratch_file)
+      if buf == -1 then
+        return
+      end
+      local text = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
+      if text:match("^%s*$") then
+        os.remove(draft_file)
+        return
+      end
+      local f = io.open(draft_file, "w")
+      if f then
+        f:write(text)
+        f:close()
+      end
+    end
+
     -- Keep in sync with INSERT_FILE in dictate.py. The daemon writes each
     -- finished transcription here and remote-calls dictate_insert_text(),
     -- which puts it straight into the scratch buffer. Unlike typing it with
@@ -45,7 +81,7 @@
         return "empty"
       end
 
-      local buf = vim.fn.bufnr("/tmp/dictate_scratch.md")
+      local buf = vim.fn.bufnr(scratch_file)
       if buf == -1 then
         return "error: dictate buffer not found"
       end
@@ -87,6 +123,10 @@
       if not ok then
         return "error: " .. tostring(err)
       end
+      if text:match("%w") then
+        dictated = true
+      end
+      write_draft()
       return "ok"
     end
 
@@ -105,9 +145,9 @@
       return entries
     end
 
-    local function append_history(text)
+    local function append_history(text, timestamp)
       local entries = read_history_entries()
-      table.insert(entries, { text = text, time = os.date("%Y-%m-%d %H:%M") })
+      table.insert(entries, { text = text, time = os.date("%Y-%m-%d %H:%M", timestamp) })
       if #entries > history_limit then
         local trimmed = {}
         for i = #entries - history_limit + 1, #entries do
@@ -122,6 +162,22 @@
         end
         out:close()
       end
+    end
+
+    -- A draft still here at startup is from a window closed without <CR>.
+    -- Timestamped with when it was last written, not now.
+    local function ingest_draft()
+      local f = io.open(draft_file, "r")
+      if not f then
+        return
+      end
+      local text = f:read("*a")
+      f:close()
+      if not text:match("^%s*$") then
+        local stat = vim.uv.fs_stat(draft_file)
+        append_history(text, stat and stat.mtime.sec or nil)
+      end
+      os.remove(draft_file)
     end
 
     local function show_history()
@@ -172,6 +228,7 @@
             actions.close(prompt_bufnr)
             if selection and vim.api.nvim_buf_is_valid(target_bufnr) then
               vim.api.nvim_buf_set_lines(target_bufnr, 0, -1, false, vim.split(selection.value.text, "\n"))
+              write_draft()
             end
           end)
           return true
@@ -203,7 +260,12 @@
         f:write(text)
         f:close()
       end
-      append_history(text)
+      if dictated and not text:match("^%s*$") then
+        append_history(text)
+      end
+      -- Already in the history (or not meant for it) -- don't ingest it
+      -- again next session.
+      os.remove(draft_file)
       vim.cmd("quit!")
     end
 
@@ -233,6 +295,7 @@
       end
       vim.bo[bufnr].modifiable = true
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(refined_text, "\n"))
+      write_draft()
       vim.notify("dictate: refined")
     end
 
@@ -359,10 +422,19 @@
     end
 
     vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
-      pattern = "/tmp/dictate_scratch.md",
+      pattern = scratch_file,
       callback = function(args)
         local buf = args.buf
         vim.bo[buf].swapfile = false
+
+        -- Before this session can write a draft of its own.
+        ingest_draft()
+        -- Manual edits; the API-driven changes (dictation, refine, history
+        -- restore) call write_draft() themselves.
+        vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+          buffer = buf,
+          callback = write_draft,
+        })
 
         local opts = { buffer = buf, silent = true }
         -- <leader>-prefixed so these don't shadow basic Vim editing commands
