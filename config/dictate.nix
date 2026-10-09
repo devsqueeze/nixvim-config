@@ -312,8 +312,10 @@
       vim.notify("dictate: refine failed: " .. detail .. " (full log: /tmp/dictate_refine_error.log)", vim.log.levels.ERROR)
     end
 
-    -- Slow but always-correct path: the CLI handles its own OAuth refresh, so
-    -- this is the fallback whenever the direct API call can't be used.
+    -- Goes through the claude CLI, which handles its own OAuth refresh. A
+    -- direct curl call to the Messages API with the same subscription token
+    -- was faster, but the Claude 5.x models reject it (HTTP 429), so it was
+    -- removed.
     local function call_claude_cli(draft, bufnr)
       vim.system(
         {
@@ -348,61 +350,6 @@
       )
     end
 
-    local function read_access_token()
-      local f = io.open(vim.fn.expand("~/.config/claude/.credentials.json"), "r")
-      if not f then
-        return nil
-      end
-      local content = f:read("*a")
-      f:close()
-      local ok, decoded = pcall(vim.json.decode, content)
-      if not ok or not decoded.claudeAiOauth then
-        return nil
-      end
-      return decoded.claudeAiOauth.accessToken
-    end
-
-    -- Fast path: calls the Messages API directly with the same OAuth token
-    -- Claude Code itself uses (subscription-billed, not pay-per-token -- see
-    -- shared/anthropic-cli.md in the claude-api skill). This machine's token
-    -- is kept fresh by ordinary Claude Code use; this function doesn't
-    -- implement the OAuth refresh flow itself, so any failure here (stale
-    -- token, network issue, unexpected response shape) just falls back to
-    -- call_claude_cli instead of surfacing an error.
-    local function call_direct_api(draft, token, bufnr)
-      local body = vim.json.encode({
-        model = "claude-haiku-5-5",
-        max_tokens = 1024,
-        system = refine_system_prompt,
-        messages = { { role = "user", content = "Refine this dictated draft: " .. draft } },
-      })
-
-      vim.system(
-        {
-          "curl", "-sS", "-f", "https://api.anthropic.com/v1/messages",
-          "-H", "Authorization: Bearer " .. token,
-          "-H", "anthropic-version: 2023-06-01",
-          "-H", "anthropic-beta: oauth-2025-04-20",
-          "-H", "content-type: application/json",
-          "-d", body,
-        },
-        { text = true },
-        function(result)
-          vim.schedule(function()
-            if result.code == 0 then
-              local ok, decoded = pcall(vim.json.decode, result.stdout or "")
-              local text = ok and decoded.content and decoded.content[1] and decoded.content[1].text
-              if text and text:match("%S") then
-                apply_refine_result(bufnr, (text:gsub("%s+$", "")))
-                return
-              end
-            end
-            call_claude_cli(draft, bufnr)
-          end)
-        end
-      )
-    end
-
     local function refine()
       local bufnr = vim.api.nvim_get_current_buf()
       local draft = table.concat(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), "\n")
@@ -413,12 +360,7 @@
       vim.bo[bufnr].modifiable = false
       vim.notify("dictate: refining...")
 
-      local token = read_access_token()
-      if token then
-        call_direct_api(draft, token, bufnr)
-      else
-        call_claude_cli(draft, bufnr)
-      end
+      call_claude_cli(draft, bufnr)
     end
 
     vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
