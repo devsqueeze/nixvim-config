@@ -252,12 +252,15 @@
       vim.api.nvim_win_set_cursor(0, { row, col + #newline_marker })
     end
 
-    local function accept()
+    -- keep_newlines (<S-CR>) turns every line break into newline_marker,
+    -- so dictate_toggle.sh types them all as real Enter keypresses instead
+    -- of collapsing them to spaces.
+    local function accept(keep_newlines)
       local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
       local text = table.concat(lines, "\n")
       local f = io.open(output_file, "w")
       if f then
-        f:write(text)
+        f:write(keep_newlines and (text:gsub("\n", newline_marker)) or text)
         f:close()
       end
       if dictated and not text:match("^%s*$") then
@@ -298,13 +301,23 @@
       .. "Rewrite it into clear UK English: fix dictation artefacts, grammar, "
       .. "capitalisation and punctuation, and remove filler words (um, er, "
       .. "you know), without changing its meaning or adding new content. "
-      .. "Leave code, commands, file names and technical terms as written, "
-      .. "and don't wrap them in backticks or quotes. " .. refine_marker_token
+      .. "Write numbers as digits rather than words (five hundred -> 500, "
+      .. "twenty-three percent -> 23%, three point five -> 3.5), including "
+      .. "small numbers, but leave words like 'one' alone where they aren't a "
+      .. "quantity (one of them, someone, no one). Speech recognition often "
+      .. "mishears 'Nix' (the package manager and language, as in NixOS, "
+      .. "nixpkgs, flakes, nixvim) as 'next': change 'next' to 'Nix' only "
+      .. "where the context shows Nix is meant, and leave the ordinary word "
+      .. "'next' (next week, next step) alone. "
+      .. "Leave code, commands, file names and technical terms as written. "
+      .. "Keep any Markdown already in the draft (list markers, headings, "
+      .. "numbered lists, emphasis, backticks) exactly as written, but don't "
+      .. "add Markdown, backticks or quotes of your own. " .. refine_marker_token
       .. " marks a line break the user deliberately asked for: copy every "
       .. refine_marker_token .. " through unchanged, in the same place, even "
       .. "mid-sentence. Never turn it into a real line break or punctuation. "
-      .. "Reply with ONLY the corrected plain text: no tags, preamble, "
-      .. "explanation, markdown formatting or commentary."
+      .. "Reply with ONLY the corrected text: no tags, preamble, explanation "
+      .. "or commentary, and no formatting that wasn't already in the draft."
 
     local function apply_refine_result(bufnr, refined_text)
       if not vim.api.nvim_buf_is_valid(bufnr) then
@@ -401,7 +414,8 @@
         -- (bare "r" replaces a character, bare "p" pastes) while the user is
         -- fixing up dictated text in this buffer.
         vim.keymap.set("n", "<leader>r", refine, opts)
-        vim.keymap.set("n", "<CR>", accept, opts)
+        vim.keymap.set("n", "<CR>", function() accept(false) end, opts)
+        vim.keymap.set("n", "<S-CR>", function() accept(true) end, opts)
         vim.keymap.set("n", "ZQ", discard, opts)
         vim.keymap.set("n", "<leader>h", show_history, opts)
         vim.keymap.set("n", "<leader>n", insert_newline_marker, opts)
